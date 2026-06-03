@@ -30,7 +30,7 @@ tabuleiro = [[0] * 10 for _ in range(10)]
 barcos = [5, 4, 3, 3, 2]
 
 
-# função para imprimir o tabuleiro bonitinho
+# função para imprimir o tabuleiro bonitinho (lê o tabuleiro de baixo para cima para parecer um plano cartesiano)
 def print_tabuleiro(tabuleiro):
     i = 9
     while i >= 0:
