@@ -23,15 +23,16 @@ print("Recebido: ", data.decode())
 
 # --- LÓGICA DO JOGO (BATALHA NAVAL) ---
 
-# Cria um tabuleiro 9x9 (inicializado com 0, representando água)
-tabuleiro = [[0] * 9 for _ in range(9)]
+# Cria um tabuleiro 10x10 (inicializado com 0, representando água)
+tabuleiro = [[0] * 10 for _ in range(10)]
 
 # Lista dos tamanhos de barcos disponíveis para posicionar
 barcos = [5, 4, 3, 3, 2]
 
 # Loop que posiciona cada barco enquanto houver barcos na lista
 while barcos:
-    print(tabuleiro)
+    for line in tabuleiro:
+        print(line)
     print("Barcos disponivéis:", barcos)
 
     # Lê as coordenadas iniciais e finais do barco (via terminal)
@@ -57,26 +58,24 @@ while barcos:
 
             # Verifica se todas as posições do tabuleiro entre as coordenadas
             # inicial e final estão livres (valor 0)
-            for i in range(9):
-                for j in range(9):
-                    if (pocisao_ix <= i <= pocisao_fx) and (
-                        pocisao_iy <= j <= pocisao_fy
-                    ):
-                        if tabuleiro[i][j] != 0:
-                            pos_livre = False
-                            break
-                if not pos_livre:
-                    break
+            for i in range(10):
+                if (pocisao_ix <= i <= pocisao_fx) or (pocisao_ix >= i >= pocisao_fx):
+                    for j in range(10):
+                        if(pocisao_iy <= j <= pocisao_fy) or (pocisao_ix >= j >= pocisao_fx):
+                            if tabuleiro[i][j] != 0:
+                                pos_livre = False
+                                break
+                    if not pos_livre:
+                        break
 
             # Se todas as posições estiverem livres, marca o barco no tabuleiro
             # (valor 1 representa parte de um barco)
             if pos_livre:
                 for i in range(9):
-                    for j in range(9):
-                        if (pocisao_ix <= i <= pocisao_fx) and (
-                            pocisao_iy <= j <= pocisao_fy
-                        ):
-                            tabuleiro[i][j] = 1
+                    if (pocisao_ix <= i <= pocisao_fx) or (pocisao_ix >= i >= pocisao_fx):
+                        for j in range(9):
+                            if (pocisao_iy <= j <= pocisao_fy) or (pocisao_iy >= j >= pocisao_fy):
+                                tabuleiro[i][j] = 1
 
                 # Remove o tamanho do barco da lista de disponíveis
                 barcos.remove(tam)
