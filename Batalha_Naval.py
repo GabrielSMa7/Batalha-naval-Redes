@@ -32,8 +32,10 @@ barcos = [5, 4, 3, 3, 2]
 
 # função para imprimir o tabuleiro bonitinho
 def print_tabuleiro(tabuleiro):
-    for line in tabuleiro:
-        print(line)
+    i = 9
+    while i >= 0:
+        print(tabuleiro[i])
+        i -= 1
 
 
 # Loop que posiciona cada barco enquanto houver barcos na lista
