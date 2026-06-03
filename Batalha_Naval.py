@@ -3,7 +3,7 @@ import socket
 
 # Endereço e porta do servidor ao qual o cliente irá se conectar
 HOST = "localhost"  # Nome do Host (servidor local)
-PORT = 5000         # Porta do host
+PORT = 5000  # Porta do host
 
 # Cria um objeto socket:
 #   AF_INET    -> IPv4
@@ -29,9 +29,16 @@ tabuleiro = [[0] * 9 for _ in range(9)]
 # Lista dos tamanhos de barcos disponíveis para posicionar
 barcos = [5, 4, 3, 3, 2]
 
+
+# função para imprimir o tabuleiro bonitinho
+def print_tabuleiro(tabuleiro):
+    for line in tabuleiro:
+        print(line)
+
+
 # Loop que posiciona cada barco enquanto houver barcos na lista
 while barcos:
-    print(tabuleiro)
+    print_tabuleiro(tabuleiro)
     print("Barcos disponivéis:", barcos)
 
     # Lê as coordenadas iniciais e finais do barco (via terminal)
