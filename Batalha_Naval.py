@@ -23,8 +23,8 @@ print("Recebido: ", data.decode())
 
 # --- LÓGICA DO JOGO (BATALHA NAVAL) ---
 
-# Cria um tabuleiro 9x9 (inicializado com 0, representando água)
-tabuleiro = [[0] * 9 for _ in range(9)]
+# Cria um tabuleiro 10x10 (inicializado com 0, representando água)
+tabuleiro = [[0] * 10 for _ in range(10)]
 
 # Lista dos tamanhos de barcos disponíveis para posicionar
 barcos = [5, 4, 3, 3, 2]
