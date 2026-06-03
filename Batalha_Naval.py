@@ -16,6 +16,7 @@ tabuleiro = [[0] * 9 for _ in range(9)] #Criação do tabuleiro
 barcos = [5, 4, 3, 3, 2]
 
 while barcos:
+    print(tabuleiro)
     print("Barcos disponivéis:", barcos)
     pocisao_ix = int(input("Escolha coordendas inicial do barco:\nX: "))
     pocisao_iy = int(input("Y: "))
@@ -28,7 +29,7 @@ while barcos:
     else:
         x = pocisao_fx - pocisao_ix
         y  = pocisao_fy - pocisao_iy
-        tam = abs(x) + abs(y)
+        tam = abs(x) + abs(y) + 1
         
         if tam in barcos:
             pos_livre = True
@@ -48,8 +49,10 @@ while barcos:
                             tabuleiro[i][j] = 1
                 
                 barcos.remove(tam)
-                print("Barcos disponivéis:", barcos)
             else:
                 print("Posição indisponivél")
         else:
             print("Barco indisponivél \nBarcos disponivéis:", barcos)
+
+s.sendall(str.encode(tabuleiro)) #Envia os dados para o servidor
+data = s.recv(1024) #Recebe os dados do servidor
