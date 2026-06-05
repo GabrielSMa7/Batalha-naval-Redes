@@ -1,5 +1,24 @@
 # Importa o módulo socket para comunicação em rede
 import socket
+import threading
+
+def escutando_servidor(conexao_socket):
+    while True:
+        try:
+            #Fica travado aqui esperando mensagem, mas SEM travar o resto do jogo
+            mensagem = conexao_socket.recv(1024).decode()
+            
+            if not mensagem:
+                print("\n[Aviso] Conexão encerrada pelo servidor.")
+                break
+                
+            print(f"\n[SERVIDOR]: {mensagem}")
+            
+            #Aqui você pode adicionar lógica, ex: se mensagem for "Sua Vez", ativa uma variável
+            
+        except Exception as e:
+            print(f"\n[Erro] Conexão perdida com o servidor: {e}")
+            break
 
 # Endereço e porta do servidor ao qual o cliente irá se conectar
 HOST = "localhost"  # Nome do Host (servidor local)
@@ -14,12 +33,9 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((HOST, PORT))
 print("Conectado ao servidor")
 
-# Envia uma mensagem codificada em bytes para o servidor
-s.sendall(str.encode("Hello World"))
-# Aguarda e recebe até 1024 bytes de resposta do servidor
-data = s.recv(1024)
-# Exibe a mensagem recebida (decodificando de bytes para string)
-print("Recebido: ", data.decode())
+thread_conexao = threading.Thread(target=escutando_servidor, args=(s,))
+thread_conexao.daemon = True
+thread_conexao.start()
 
 # --- LÓGICA DO JOGO (BATALHA NAVAL) ---
 
@@ -59,9 +75,9 @@ while barcos:
             # Verifica se todas as posições do tabuleiro entre as coordenadas
             # inicial e final estão livres (valor 0)
             for i in range(10):
-                if (pocisao_ix <= i <= pocisao_fx) or (pocisao_ix >= i >= pocisao_fx):
+                if (pocisao_iy <= i <= pocisao_fy) or (pocisao_iy >= i >= pocisao_fy):
                     for j in range(10):
-                        if(pocisao_iy <= j <= pocisao_fy) or (pocisao_ix >= j >= pocisao_fx):
+                        if(pocisao_ix <= j <= pocisao_fx) or (pocisao_ix >= j >= pocisao_fx):
                             if tabuleiro[i][j] != 0:
                                 pos_livre = False
                                 break
@@ -71,10 +87,10 @@ while barcos:
             # Se todas as posições estiverem livres, marca o barco no tabuleiro
             # (valor 1 representa parte de um barco)
             if pos_livre:
-                for i in range(9):
-                    if (pocisao_ix <= i <= pocisao_fx) or (pocisao_ix >= i >= pocisao_fx):
-                        for j in range(9):
-                            if (pocisao_iy <= j <= pocisao_fy) or (pocisao_iy >= j >= pocisao_fy):
+                for i in range(10):
+                    if (pocisao_iy <= i <= pocisao_fy) or (pocisao_iy >= i >= pocisao_fy):
+                        for j in range(10):
+                            if (pocisao_ix <= j <= pocisao_fx) or (pocisao_ix >= j >= pocisao_fx):
                                 tabuleiro[i][j] = 1
 
                 # Remove o tamanho do barco da lista de disponíveis
@@ -87,4 +103,5 @@ while barcos:
 # Envia o tabuleiro (como string codificada) para o servidor
 s.sendall(str.encode(str(tabuleiro)))
 # Recebe a resposta do servidor
-data = s.recv(1024)
+while True:
+    pass
