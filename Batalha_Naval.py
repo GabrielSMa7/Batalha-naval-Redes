@@ -22,7 +22,7 @@ def escutando_servidor(conexao_socket):
 
 # Endereço e porta do servidor ao qual o cliente irá se conectar
 HOST = "localhost"  # Nome do Host (servidor local)
-PORT = 5000         # Porta do host
+PORT = 5000  # Porta do host
 
 # Cria um objeto socket:
 #   AF_INET    -> IPv4
@@ -44,6 +44,15 @@ tabuleiro = [[0] * 10 for _ in range(10)]
 
 # Lista dos tamanhos de barcos disponíveis para posicionar
 barcos = [5, 4, 3, 3, 2]
+
+
+# função para imprimir o tabuleiro bonitinho (lê o tabuleiro de baixo para cima para parecer um plano cartesiano)
+def print_tabuleiro(tabuleiro):
+    i = 9
+    while i >= 0:
+        print(tabuleiro[i])
+        i -= 1
+
 
 # Loop que posiciona cada barco enquanto houver barcos na lista
 while barcos:
