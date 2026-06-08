@@ -7,13 +7,17 @@ import time
 minha_vez = False
 jogo = True
 
+# Inicializa as variáveis globais de tiro como inteiros padrão
+tiro_x = 0
+tiro_y = 0
+
 def escutando_servidor(conexao_socket):
-    global jogo, minha_vez
-    buffer = ""  # CORREÇÃO DEFINITIVA: Armazena fragmentos de texto da rede
+    # CORREÇÃO: Adicionado tiro_x e tiro_y no global para a thread ler o valor atualizado do input
+    global jogo, minha_vez, itab, tabuleiro, tiro_x, tiro_y
+    buffer = ""  
 
     while jogo:
         try:
-            # Fica travado aqui esperando dados da rede
             dados = conexao_socket.recv(1024).decode()
             
             if not dados:
@@ -21,26 +25,34 @@ def escutando_servidor(conexao_socket):
                 jogo = False
                 break
             
-            # Acumula o que chegou no buffer
             buffer += dados
             
-            # Processa todas as mensagens completas terminadas em \n
             while "\n" in buffer:
                 mensagem, buffer = buffer.split("\n", 1)
                 
                 if not mensagem:
                     continue
                 
-                # Protocolo de checagem seguro contra pacotes colados
                 if mensagem == "SUA_VEZ":
                     print("\nÉ sua vez! Prepare o ataque.")
+                    print_itabuleiro(itab)
                     minha_vez = True
 
                 elif mensagem == "ERROU":
                     print("Você errou o alvo (água)!")
+                    # CORREÇÃO: tiro_y e tiro_x agora são inteiros válidos
+                    itab[tiro_y][tiro_x] = 'X'
+                    # CORREÇÃO: Substituído x, y por tiro_x, tiro_y que estão no escopo correto
+                    print(f"\nVocê errou a posição do inimigo ({tiro_x}, {tiro_y})!")
+                    print_itabuleiro(itab)
                 
                 elif mensagem == "ACERTO":
                     print("Você acertou o alvo!")
+                    # CORREÇÃO: tiro_y e tiro_x agora são inteiros válidos
+                    itab[tiro_y][tiro_x] = 'V'
+                    # CORREÇÃO: Substituído x, y por tiro_x, tiro_y que estão no escopo correto
+                    print(f"\nVocê bombardeou a posição do inimigo ({tiro_x}, {tiro_y})! (FOGO!)")
+                    print_itabuleiro(itab)
 
                 elif mensagem == "INI_VEZ":
                     print("Inimigo está escolhendo o alvo...")
@@ -52,7 +64,6 @@ def escutando_servidor(conexao_socket):
                     coordenadas = mensagem.split(":")[1]
                     x, y = map(int, coordenadas.split(","))
                     
-                    # CORREÇÃO: Alinhado para [y][x] para casar com a estrutura de linhas do tabuleiro
                     tabuleiro[y][x] = 'X'
                     print(f"\nO inimigo bombardeou sua posição ({x}, {y})!")
                     print_tabuleiro(tabuleiro)
@@ -66,7 +77,9 @@ def escutando_servidor(conexao_socket):
             break
 
 # Endereço e porta do servidor
-HOST = input("Endereço IPV4:") #endereço do IPV4 do servidor   
+
+
+HOST = input("Endereço IPV4:") 
 PORT = 5000  
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -80,13 +93,20 @@ thread_conexao.start()
 
 # --- LÓGICA DO JOGO (BATALHA NAVAL) ---
 
-# Cria um tabuleiro 10x10 (inicializado com "~", representando água)
 tabuleiro = [["~"] * 10 for _ in range(10)]
 barcos = [5, 4, 3, 3, 2]
 
-# Função para imprimir o tabuleiro de baixo para cima (plano cartesiano)
+# CORREÇÃO: Ajustado para usar o parâmetro tab_atual recebido na função
 def print_tabuleiro(tab_atual):
     print("\n--- SEU TABULEIRO ---")
+    i = 9
+    while i >= 0:
+        print(" ".join(tab_atual[i]))
+        i -= 1
+    print("---------------------\n")
+
+def print_itabuleiro(tab_atual):
+    print("\n--- TABULEIRO INIMIGO ---")
     i = 9
     while i >= 0:
         print(" ".join(tab_atual[i]))
@@ -120,7 +140,6 @@ while barcos:
         if tam in barcos:
             pos_livre = True
 
-            # Verifica se todas as posições estão livres
             for i in range(10):
                 if (posicao_iy <= i <= posicao_fy) or (posicao_iy >= i >= posicao_fy):
                     for j in range(10):
@@ -131,7 +150,6 @@ while barcos:
                     if not pos_livre:
                         break
 
-            # Se livre, posiciona marcando com "O"
             if pos_livre:
                 for i in range(10):
                     if (posicao_iy <= i <= posicao_fy) or (posicao_iy >= i >= posicao_fy):
@@ -144,7 +162,7 @@ while barcos:
         else:
             print(f"Você não tem um barco de tamanho {tam}.")
 
-# Envia o tabuleiro finalizado para o servidor iniciar a partida
+itab = [["?"] * 10 for _ in range(10)]
 s.sendall(str.encode(str(tabuleiro)))
 print("\nTabuleiro enviado! Aguardando início do jogo...")
 
@@ -152,15 +170,23 @@ print("\nTabuleiro enviado! Aguardando início do jogo...")
 while jogo:
     try:
         if minha_vez:
-            tiro_x = input("\nEscolha coordenada de tiro X: ")
-            tiro_y = input("Escolha coordenada de tiro Y: ")
+            # CORREÇÃO DEFINITIVA: Força a entrada a ser um número inteiro (int) e valida os limites (0 a 9)
+            try:
+                tiro_x = int(input("\nEscolha coordenada de tiro X: "))
+                tiro_y = int(input("Escolha coordenada de tiro Y: "))
+                
+                if tiro_x < 0 or tiro_x > 9 or tiro_y < 0 or tiro_y > 9:
+                    print("Coordenadas inválidas! Escolha números de 0 a 9.")
+                    continue
+            except ValueError:
+                print("Por favor, digite apenas números válidos!")
+                continue
 
             coordenada_tiro = f"{tiro_x},{tiro_y}"
             s.sendall(str.encode(coordenada_tiro))
             
             minha_vez = False
         else:
-            # CORREÇÃO: Evita que o programa gaste 100% da sua CPU rodando em vazio
             time.sleep(0.1)
 
     except Exception:
