@@ -66,7 +66,7 @@ def escutando_servidor(conexao_socket):
             break
 
 # Endereço e porta do servidor
-HOST = "localhost" #endereço do IPV4 do servidor   
+HOST = input("Endereço IPV4:") #endereço do IPV4 do servidor   
 PORT = 5000  
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
