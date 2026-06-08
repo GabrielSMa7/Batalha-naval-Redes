@@ -1,116 +1,171 @@
-# Importa o módulo socket para comunicação em rede
+# Importa os módulos necessários para comunicação em rede e concorrência
 import socket
 import threading
+import sys
+import time
+
+minha_vez = False
+jogo = True
 
 def escutando_servidor(conexao_socket):
-    while True:
+    global jogo, minha_vez
+    buffer = ""  # CORREÇÃO DEFINITIVA: Armazena fragmentos de texto da rede
+
+    while jogo:
         try:
-            #Fica travado aqui esperando mensagem, mas SEM travar o resto do jogo
-            mensagem = conexao_socket.recv(1024).decode()
+            # Fica travado aqui esperando dados da rede
+            dados = conexao_socket.recv(1024).decode()
             
-            if not mensagem:
+            if not dados:
                 print("\n[Aviso] Conexão encerrada pelo servidor.")
+                jogo = False
                 break
-                
-            print(f"\n[SERVIDOR]: {mensagem}")
             
-            #Aqui você pode adicionar lógica, ex: se mensagem for "Sua Vez", ativa uma variável
+            # Acumula o que chegou no buffer
+            buffer += dados
+            
+            # Processa todas as mensagens completas terminadas em \n
+            while "\n" in buffer:
+                mensagem, buffer = buffer.split("\n", 1)
+                
+                if not mensagem:
+                    continue
+                
+                # Protocolo de checagem seguro contra pacotes colados
+                if mensagem == "SUA_VEZ":
+                    print("\nÉ sua vez! Prepare o ataque.")
+                    minha_vez = True
+
+                elif mensagem == "ERROU":
+                    print("Você errou o alvo (água)!")
+                
+                elif mensagem == "ACERTO":
+                    print("Você acertou o alvo!")
+
+                elif mensagem == "INI_VEZ":
+                    print("Inimigo está escolhendo o alvo...")
+
+                elif "OPONENTE_ERROU" in mensagem:
+                    print("O inimigo errou o tiro!")
+
+                elif "ATINGIDO" in mensagem:
+                    coordenadas = mensagem.split(":")[1]
+                    x, y = map(int, coordenadas.split(","))
+                    
+                    # CORREÇÃO: Alinhado para [y][x] para casar com a estrutura de linhas do tabuleiro
+                    tabuleiro[y][x] = 'X'
+                    print(f"\nO inimigo bombardeou sua posição ({x}, {y})!")
+                    print_tabuleiro(tabuleiro)
+
+                else:
+                    print(f"\n[SERVIDOR]: {mensagem}")
             
         except Exception as e:
             print(f"\n[Erro] Conexão perdida com o servidor: {e}")
+            jogo = False
             break
 
-# Endereço e porta do servidor ao qual o cliente irá se conectar
-HOST = "localhost"  # Nome do Host (servidor local)
-PORT = 5000  # Porta do host
+# Endereço e porta do servidor
+HOST = "localhost"  
+PORT = 5000  
 
-# Cria um objeto socket:
-#   AF_INET    -> IPv4
-#   SOCK_STREAM -> TCP (protocolo orientado a conexão)
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-# Conecta o socket ao servidor no endereço e porta especificados
 s.connect((HOST, PORT))
-print("Conectado ao servidor")
+print("Conectado ao servidor com sucesso!")
 
+# Inicializa a Thread para escutar o servidor em paralelo
 thread_conexao = threading.Thread(target=escutando_servidor, args=(s,))
 thread_conexao.daemon = True
 thread_conexao.start()
 
 # --- LÓGICA DO JOGO (BATALHA NAVAL) ---
 
-# Cria um tabuleiro 10x10 (inicializado com 0, representando água)
-tabuleiro = [[0] * 10 for _ in range(10)]
-
-# Lista dos tamanhos de barcos disponíveis para posicionar
+# Cria um tabuleiro 10x10 (inicializado com "~", representando água)
+tabuleiro = [["~"] * 10 for _ in range(10)]
 barcos = [5, 4, 3, 3, 2]
 
-
-# função para imprimir o tabuleiro bonitinho (lê o tabuleiro de baixo para cima para parecer um plano cartesiano)
-def print_tabuleiro(tabuleiro):
+# Função para imprimir o tabuleiro de baixo para cima (plano cartesiano)
+def print_tabuleiro(tab_atual):
+    print("\n--- SEU TABULEIRO ---")
     i = 9
     while i >= 0:
-        print(tabuleiro[i])
+        print(" ".join(tab_atual[i]))
         i -= 1
+    print("---------------------\n")
 
-
-# Loop que posiciona cada barco enquanto houver barcos na lista
+# Loop que posiciona cada barco
 while barcos:
-    for line in tabuleiro:
-        print(line)
-    print("Barcos disponivéis:", barcos)
+    print_tabuleiro(tabuleiro)
+    print("Barcos disponíveis para posicionar (tamanhos):", barcos)
 
-    # Lê as coordenadas iniciais e finais do barco (via terminal)
-    pocisao_ix = int(input("Escolha coordendas inicial do barco:\nX: "))
-    pocisao_iy = int(input("Y: "))
-    pocisao_fx = int(input("Escolha coordendas final do barco:\nX: "))
-    pocisao_fy = int(input("Y: "))
+    try:
+        posicao_ix = int(input("Escolha coordenada INICIAL do barco:\nX: "))
+        posicao_iy = int(input("Y: "))
+        posicao_fx = int(input("Escolha coordenada FINAL do barco:\nX: "))
+        posicao_fy = int(input("Y: "))
+    except ValueError:
+        print("Por favor, insira apenas números inteiros!")
+        continue
 
-    # Se ambas as coordenadas X e Y forem diferentes, a posição é inválida
-    # (o barco deve estar na horizontal OU na vertical, não diagonal)
-    if pocisao_ix != pocisao_fx and pocisao_iy != pocisao_fy:
-        print("Pocisão invalida")
-
+    coordenadas = [posicao_fx, posicao_fy, posicao_ix, posicao_iy]
+    fora_tabuleiro = any(c < 0 or c > 9 for c in coordenadas)
+    
+    if (posicao_ix != posicao_fx and posicao_iy != posicao_fy) or fora_tabuleiro:
+        print("Posição inválida!")
     else:
-        # Calcula o tamanho do barco com base na diferença das coordenadas
-        x = pocisao_fx - pocisao_ix
-        y = pocisao_fy - pocisao_iy
+        x = posicao_fx - posicao_ix
+        y = posicao_fy - posicao_iy
         tam = abs(x) + abs(y) + 1
 
-        # Verifica se o tamanho do barco está na lista de barcos disponíveis
         if tam in barcos:
             pos_livre = True
 
-            # Verifica se todas as posições do tabuleiro entre as coordenadas
-            # inicial e final estão livres (valor 0)
+            # Verifica se todas as posições estão livres
             for i in range(10):
-                if (pocisao_iy <= i <= pocisao_fy) or (pocisao_iy >= i >= pocisao_fy):
+                if (posicao_iy <= i <= posicao_fy) or (posicao_iy >= i >= posicao_fy):
                     for j in range(10):
-                        if(pocisao_ix <= j <= pocisao_fx) or (pocisao_ix >= j >= pocisao_fx):
-                            if tabuleiro[i][j] != 0:
+                        if (posicao_ix <= j <= posicao_fx) or (posicao_ix >= j >= posicao_fx):
+                            if tabuleiro[i][j] != "~":
                                 pos_livre = False
                                 break
                     if not pos_livre:
                         break
 
-            # Se todas as posições estiverem livres, marca o barco no tabuleiro
-            # (valor 1 representa parte de um barco)
+            # Se livre, posiciona marcando com "O"
             if pos_livre:
                 for i in range(10):
-                    if (pocisao_iy <= i <= pocisao_fy) or (pocisao_iy >= i >= pocisao_fy):
+                    if (posicao_iy <= i <= posicao_fy) or (posicao_iy >= i >= posicao_fy):
                         for j in range(10):
-                            if (pocisao_ix <= j <= pocisao_fx) or (pocisao_ix >= j >= pocisao_fx):
-                                tabuleiro[i][j] = 1
-
-                # Remove o tamanho do barco da lista de disponíveis
+                            if (posicao_ix <= j <= posicao_fx) or (posicao_ix >= j >= posicao_fx):
+                                tabuleiro[i][j] = "O"
                 barcos.remove(tam)
             else:
-                print("Posição indisponivél")
+                print("Posição indisponível!")
         else:
-            print("Barco indisponivél \nBarcos disponivéis:", barcos)
+            print(f"Você não tem um barco de tamanho {tam}.")
 
-# Envia o tabuleiro (como string codificada) para o servidor
+# Envia o tabuleiro finalizado para o servidor iniciar a partida
 s.sendall(str.encode(str(tabuleiro)))
-# Recebe a resposta do servidor
-while True:
-    pass
+print("\nTabuleiro enviado! Aguardando início do jogo...")
+
+# Loop Principal de Turnos da Partida
+while jogo:
+    try:
+        if minha_vez:
+            tiro_x = input("\nEscolha coordenada de tiro X: ")
+            tiro_y = input("Escolha coordenada de tiro Y: ")
+
+            coordenada_tiro = f"{tiro_x},{tiro_y}"
+            s.sendall(str.encode(coordenada_tiro))
+            
+            minha_vez = False
+        else:
+            # CORREÇÃO: Evita que o programa gaste 100% da sua CPU rodando em vazio
+            time.sleep(0.1)
+
+    except Exception:
+        break
+
+print("\n🏁 Fim de jogo!")
+s.close()
+sys.exit()
