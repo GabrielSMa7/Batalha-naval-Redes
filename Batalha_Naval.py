@@ -106,7 +106,7 @@ def print_tabuleiro(tab_atual):
 
 def print_itabuleiro(tab_atual):
     print("\n--- TABULEIRO INIMIGO ---")
-    print(" 0 1 2 3 4 5 6 7 8 9")
+    print("  0 1 2 3 4 5 6 7 8 9")
     i = 9
     while i >= 0:
         print(i, " ".join(tab_atual[i]))
