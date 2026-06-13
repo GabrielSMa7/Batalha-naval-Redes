@@ -11,6 +11,9 @@ jogo = True
 tiro_x = 0
 tiro_y = 0
 
+# Lock para proteger tiro_x e tiro_y entre threads
+tiro_lock = threading.Lock()
+
 def escutando_servidor(conexao_socket):
     # CORREÇÃO: Adicionado tiro_x e tiro_y no global para a thread ler o valor atualizado do input
     global jogo, minha_vez, itab, tabuleiro, tiro_x, tiro_y
@@ -40,18 +43,18 @@ def escutando_servidor(conexao_socket):
 
                 elif mensagem == "ERROU":
                     print("Você errou o alvo (água)!")
-                    # CORREÇÃO: tiro_y e tiro_x agora são inteiros válidos
-                    itab[tiro_y][tiro_x] = 'X'
-                    # CORREÇÃO: Substituído x, y por tiro_x, tiro_y que estão no escopo correto
-                    print(f"\nVocê errou a posição do inimigo ({tiro_x}, {tiro_y})!")
+                    with tiro_lock:
+                        coord_x, coord_y = tiro_x, tiro_y
+                    itab[coord_y][coord_x] = 'X'
+                    print(f"\nVocê errou a posição do inimigo ({coord_x}, {coord_y})!")
                     print_itabuleiro(itab)
                 
                 elif mensagem == "ACERTO":
                     print("Você acertou o alvo!")
-                    # CORREÇÃO: tiro_y e tiro_x agora são inteiros válidos
-                    itab[tiro_y][tiro_x] = 'V'
-                    # CORREÇÃO: Substituído x, y por tiro_x, tiro_y que estão no escopo correto
-                    print(f"\nVocê bombardeou a posição do inimigo ({tiro_x}, {tiro_y})! (FOGO!)")
+                    with tiro_lock:
+                        coord_x, coord_y = tiro_x, tiro_y
+                    itab[coord_y][coord_x] = 'V'
+                    print(f"\nVocê bombardeou a posição do inimigo ({coord_x}, {coord_y})! (FOGO!)")
                     print_itabuleiro(itab)
 
                 elif mensagem == "INI_VEZ":
@@ -64,9 +67,22 @@ def escutando_servidor(conexao_socket):
                     coordenadas = mensagem.split(":")[1]
                     x, y = map(int, coordenadas.split(","))
                     
-                    tabuleiro[y][x] = 'X'
-                    print(f"\nO inimigo bombardeou sua posição ({x}, {y})!")
-                    print_tabuleiro(tabuleiro)
+                    if 0 <= x <= 9 and 0 <= y <= 9:
+                        tabuleiro[y][x] = 'X'
+                        print(f"\nO inimigo bombardeou sua posição ({x}, {y})!")
+                        print_tabuleiro(tabuleiro)
+
+                elif mensagem == "VENCEU":
+                    print("\nVOCÊ VENCEU! Todos os navios inimigos foram destruídos!")
+                    jogo = False
+
+                elif mensagem == "PERDEU":
+                    print("\nVOCÊ PERDEU! Todos os seus navios foram destruídos!")
+                    jogo = False
+
+                elif mensagem == "OPONENTE_DESCONECTOU":
+                    print("\nO oponente desconectou! Partida encerrada.")
+                    jogo = False
 
                 else:
                     print(f"\n[SERVIDOR]: {mensagem}")
@@ -172,8 +188,9 @@ while jogo:
         if minha_vez:
             # CORREÇÃO DEFINITIVA: Força a entrada a ser um número inteiro (int) e valida os limites (0 a 9)
             try:
-                tiro_x = int(input("\nEscolha coordenada de tiro X: "))
-                tiro_y = int(input("Escolha coordenada de tiro Y: "))
+                with tiro_lock:
+                    tiro_x = int(input("\nEscolha coordenada de tiro X: "))
+                    tiro_y = int(input("Escolha coordenada de tiro Y: "))
                 
                 if tiro_x < 0 or tiro_x > 9 or tiro_y < 0 or tiro_y > 9:
                     print("Coordenadas inválidas! Escolha números de 0 a 9.")
